@@ -11,8 +11,11 @@ const port = Number(process.env.PORT || 3000);
 const adminEmail = process.env.ADMIN_EMAIL || 'admin@essencesam.com';
 const frontendOrigin = process.env.FRONTEND_ORIGIN || '*';
 const frontendRoot = path.resolve(__dirname, '..');
+const databaseRetryDelayMs = Number(process.env.DATABASE_RETRY_DELAY_MS || 5000);
 
 const defaultProducts = [];
+let databaseReady = false;
+let lastDatabaseErrorMessage = '';
 
 function normalizeProduct(product) {
     return {
@@ -174,6 +177,36 @@ async function validateAdminPassword(password) {
     return password === configuredPassword;
 }
 
+function asyncHandler(handler) {
+    return function wrappedHandler(request, response, next) {
+        Promise.resolve(handler(request, response, next)).catch(next);
+    };
+}
+
+function waitFor(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function initializeDatabase() {
+    while (true) {
+        try {
+            await ensureSchema();
+            await removeLegacyDefaultProducts();
+            await seedDefaultProducts();
+
+            databaseReady = true;
+            lastDatabaseErrorMessage = '';
+            console.log('Banco pronto para uso.');
+            return;
+        } catch (error) {
+            databaseReady = false;
+            lastDatabaseErrorMessage = error instanceof Error ? error.message : 'Falha ao conectar no banco.';
+            console.error(`Falha ao inicializar o banco. Nova tentativa em ${databaseRetryDelayMs}ms.`, error);
+            await waitFor(databaseRetryDelayMs);
+        }
+    }
+}
+
 function createApp() {
     const app = express();
 
@@ -181,12 +214,20 @@ function createApp() {
     app.use(express.json());
     app.use(express.static(frontendRoot));
 
-    app.get('/api/health', async (_request, response) => {
-        const result = await query('select now() as now');
-        response.json({ ok: true, databaseTime: result.rows[0].now });
-    });
+    app.get('/api/health', asyncHandler(async (_request, response) => {
+        if (!databaseReady) {
+            return response.status(503).json({
+                ok: false,
+                status: 'starting',
+                message: lastDatabaseErrorMessage || 'Banco ainda inicializando.'
+            });
+        }
 
-    app.post('/api/auth/login', async (request, response) => {
+        const result = await query('select now() as now');
+        return response.json({ ok: true, databaseTime: result.rows[0].now });
+    }));
+
+    app.post('/api/auth/login', asyncHandler(async (request, response) => {
         const email = String(request.body.email || '').trim().toLowerCase();
         const password = String(request.body.password || '');
 
@@ -201,9 +242,9 @@ function createApp() {
 
         const token = createToken(adminEmail);
         return response.json({ token, admin: { email: adminEmail } });
-    });
+    }));
 
-    app.get('/api/products', async (_request, response) => {
+    app.get('/api/products', asyncHandler(async (_request, response) => {
         const result = await query(
             `
             select id, name, category, price, description, image, is_active
@@ -213,10 +254,10 @@ function createApp() {
             `
         );
 
-        response.json(result.rows.map(mapProduct));
-    });
+        return response.json(result.rows.map(mapProduct));
+    }));
 
-    app.post('/api/products', requireAdmin, async (request, response) => {
+    app.post('/api/products', requireAdmin, asyncHandler(async (request, response) => {
         const product = normalizeProduct({ ...request.body, id: request.body.id || `custom-${Date.now()}` });
 
         if (!product.id || !product.name || !product.category || !product.description || !product.image || product.price <= 0) {
@@ -232,10 +273,10 @@ function createApp() {
             [product.id, product.name, product.category, product.price, product.description, product.image]
         );
 
-        response.status(201).json(mapProduct(result.rows[0]));
-    });
+        return response.status(201).json(mapProduct(result.rows[0]));
+    }));
 
-    app.put('/api/products/:id', requireAdmin, async (request, response) => {
+    app.put('/api/products/:id', requireAdmin, asyncHandler(async (request, response) => {
         const product = normalizeProduct({ ...request.body, id: request.params.id });
 
         if (!product.name || !product.category || !product.description || !product.image || product.price <= 0) {
@@ -261,20 +302,20 @@ function createApp() {
             return response.status(404).json({ message: 'Produto não encontrado.' });
         }
 
-        response.json(mapProduct(result.rows[0]));
-    });
+        return response.json(mapProduct(result.rows[0]));
+    }));
 
-    app.delete('/api/products/:id', requireAdmin, async (request, response) => {
+    app.delete('/api/products/:id', requireAdmin, asyncHandler(async (request, response) => {
         const result = await query('delete from products where id = $1 returning id', [request.params.id]);
 
         if (!result.rows.length) {
             return response.status(404).json({ message: 'Produto não encontrado.' });
         }
 
-        response.status(204).send();
-    });
+        return response.status(204).send();
+    }));
 
-    app.get('/api/customer/:sessionId/favorites', async (request, response) => {
+    app.get('/api/customer/:sessionId/favorites', asyncHandler(async (request, response) => {
         const result = await query(
             `
             select product_id
@@ -285,10 +326,10 @@ function createApp() {
             [request.params.sessionId]
         );
 
-        response.json(result.rows.map((row) => row.product_id));
-    });
+        return response.json(result.rows.map((row) => row.product_id));
+    }));
 
-    app.put('/api/customer/:sessionId/favorites', async (request, response) => {
+    app.put('/api/customer/:sessionId/favorites', asyncHandler(async (request, response) => {
         const { sessionId } = request.params;
         const productIds = Array.isArray(request.body.productIds) ? request.body.productIds : [];
         const client = await pool.connect();
@@ -305,16 +346,16 @@ function createApp() {
             }
 
             await client.query('commit');
-            response.json({ ok: true });
+            return response.json({ ok: true });
         } catch (error) {
             await client.query('rollback');
             throw error;
         } finally {
             client.release();
         }
-    });
+    }));
 
-    app.get('/api/customer/:sessionId/cart', async (request, response) => {
+    app.get('/api/customer/:sessionId/cart', asyncHandler(async (request, response) => {
         const result = await query(
             `
             select product_id, quantity
@@ -325,10 +366,10 @@ function createApp() {
             [request.params.sessionId]
         );
 
-        response.json(result.rows.map((row) => ({ productId: row.product_id, quantity: Number(row.quantity) })));
-    });
+        return response.json(result.rows.map((row) => ({ productId: row.product_id, quantity: Number(row.quantity) })));
+    }));
 
-    app.put('/api/customer/:sessionId/cart', async (request, response) => {
+    app.put('/api/customer/:sessionId/cart', asyncHandler(async (request, response) => {
         const { sessionId } = request.params;
         const items = Array.isArray(request.body.items) ? request.body.items : [];
         const client = await pool.connect();
@@ -353,16 +394,16 @@ function createApp() {
             }
 
             await client.query('commit');
-            response.json({ ok: true });
+            return response.json({ ok: true });
         } catch (error) {
             await client.query('rollback');
             throw error;
         } finally {
             client.release();
         }
-    });
+    }));
 
-    app.post('/api/orders', async (request, response) => {
+    app.post('/api/orders', asyncHandler(async (request, response) => {
         const items = Array.isArray(request.body.items) ? request.body.items : [];
         const sessionId = String(request.body.sessionId || '').trim() || null;
         const customerName = String(request.body.customerName || '').trim() || null;
@@ -398,16 +439,16 @@ function createApp() {
             }
 
             await client.query('commit');
-            response.status(201).json(orderResult.rows[0]);
+            return response.status(201).json(orderResult.rows[0]);
         } catch (error) {
             await client.query('rollback');
             throw error;
         } finally {
             client.release();
         }
-    });
+    }));
 
-    app.get('/api/orders', requireAdmin, async (_request, response) => {
+    app.get('/api/orders', requireAdmin, asyncHandler(async (_request, response) => {
         const result = await query(
             `
             select
@@ -438,10 +479,10 @@ function createApp() {
             `
         );
 
-        response.json(result.rows.map(mapOrder));
-    });
+        return response.json(result.rows.map(mapOrder));
+    }));
 
-    app.patch('/api/orders/:id/status', requireAdmin, async (request, response) => {
+    app.patch('/api/orders/:id/status', requireAdmin, asyncHandler(async (request, response) => {
         const allowedStatuses = ['pending', 'whatsapp-contacted', 'confirmed', 'delivered', 'canceled'];
         const nextStatus = String(request.body.status || '').trim();
 
@@ -463,8 +504,8 @@ function createApp() {
             return response.status(404).json({ message: 'Pedido não encontrado.' });
         }
 
-        response.json({ id: Number(result.rows[0].id), status: result.rows[0].status });
-    });
+        return response.json({ id: Number(result.rows[0].id), status: result.rows[0].status });
+    }));
 
     app.get('/', (_request, response) => {
         response.sendFile(path.join(frontendRoot, 'index.html'));
@@ -479,14 +520,12 @@ function createApp() {
 }
 
 async function start() {
-    await ensureSchema();
-    await removeLegacyDefaultProducts();
-    await seedDefaultProducts();
-
     const app = createApp();
     app.listen(port, () => {
         console.log(`Essence Sam API rodando em http://localhost:${port}`);
     });
+
+    await initializeDatabase();
 }
 
 start().catch((error) => {
