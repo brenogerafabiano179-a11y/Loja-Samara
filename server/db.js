@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 
 dns.setDefaultResultOrder('ipv4first');
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = String(process.env.DATABASE_URL || '').trim();
 
 if (!connectionString) {
     throw new Error('DATABASE_URL não configurada.');
