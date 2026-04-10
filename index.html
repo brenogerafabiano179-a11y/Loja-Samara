@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essence Sam - Acessórios Femininos</title>
+    <meta name="description" content="Loja online Essence Sam com acessórios femininos elegantes e modernos para realçar sua beleza.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-shell"></div>
+
+    <!-- Cabecalho principal da marca -->
+    <header class="topbar">
+        <div>
+            <div class="brand-mark">Essence Sam</div>
+            <p class="brand-line">Acessórios femininos para realçar sua beleza</p>
+        </div>
+        <button class="admin-entry" id="openAdminAccess" type="button">Acesso ADM</button>
+    </header>
+
+    <main>
+        <!-- Banner principal com proposta de valor -->
+        <section class="hero reveal">
+            <div class="hero-copy">
+                <span class="eyebrow">Nova coleção Essence Sam ✨</span>
+                <h1>Detalhes delicados que transformam a rotina em elegância.</h1>
+                <p>
+                    Descubra acessórios femininos com estética boutique, acabamento sofisticado
+                    e estilo leve para acompanhar seus momentos favoritos.
+                </p>
+                <div class="hero-actions">
+                    <a class="primary-button" href="#catalogo">Ver coleção</a>
+                    <a class="secondary-link" href="https://wa.me/5527997934983?text=Olá!%20Quero%20conhecer%20a%20coleção%20da%20Essence%20Sam" target="_blank" rel="noopener noreferrer">Atendimento via WhatsApp</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Introducao da colecao -->
+        <section class="collection-intro reveal" id="catalogo">
+            <div>
+                <span class="section-tag">Coleção Essence Sam</span>
+                <h2>Acessórios do dia a dia com visual premium.</h2>
+            </div>
+            <p>
+                Uma vitrine criada para mulheres que gostam de leveza, feminilidade e praticidade,
+                com peças que combinam com diferentes estilos e ocasiões.
+            </p>
+        </section>
+
+        <section class="catalog-toolbar reveal" aria-label="Filtros do catálogo">
+            <div>
+                <span class="section-tag">Catálogo</span>
+                <h3 class="catalog-toolbar-title">Encontre por categoria</h3>
+                <div class="catalog-status" id="catalogStatus">
+                    <span id="favoritesCount">0 favoritos</span>
+                    <span id="cartCount">0 no carrinho</span>
+                </div>
+            </div>
+            <div class="catalog-toolbar-controls">
+                <label class="catalog-search">
+                    <span class="sr-only">Buscar produto</span>
+                    <input id="searchInput" type="search" placeholder="Buscar por nome do produto">
+                </label>
+                <label class="catalog-sort">
+                    <span class="sr-only">Ordenar catálogo</span>
+                    <select id="sortSelect">
+                        <option value="featured">Destaques</option>
+                        <option value="price-asc">Menor preço</option>
+                        <option value="price-desc">Maior preço</option>
+                        <option value="name-asc">Nome A-Z</option>
+                    </select>
+                </label>
+                <div class="catalog-filters" id="categoryFilters"></div>
+            </div>
+        </section>
+
+        <!-- Catalogo de produtos preenchido via JavaScript -->
+        <section class="product-catalog" id="productGrid" aria-label="Catálogo de produtos por categoria"></section>
+
+        <!-- Entrada e painel administrativo da loja -->
+        <section class="admin-hub reveal" id="adminArea">
+            <span class="section-tag">Gestão da loja</span>
+            <button class="primary-button admin-open-button" id="openAdminPanel" type="button">Entrar como administradora</button>
+        </section>
+
+        <section class="admin-panel reveal hidden" id="adminPanel" aria-label="Painel administrativo">
+            <div class="admin-panel-header">
+                <div>
+                    <span class="section-tag">Painel Essence Sam</span>
+                    <h2>Cadastre novas peças na vitrine.</h2>
+                </div>
+                <button class="secondary-button" id="logoutAdmin" type="button">Sair</button>
+            </div>
+
+            <div class="admin-panel-grid">
+                <form class="admin-form" id="productForm">
+                    <div class="form-heading">
+                        <h3 id="productFormTitle">Novo produto</h3>
+                        <p id="productFormDescription">Preencha os dados abaixo para publicar um novo item no catálogo.</p>
+                    </div>
+
+                    <input id="editingProductId" name="editingProductId" type="hidden">
+
+                    <div class="form-grid">
+                        <label>
+                            <span>Nome do produto</span>
+                            <input id="productName" name="productName" type="text" maxlength="60" required>
+                        </label>
+                        <label>
+                            <span>Categoria</span>
+                            <input id="productCategory" name="productCategory" type="text" maxlength="30" placeholder="Ex: Presilhas" required>
+                        </label>
+                        <label>
+                            <span>Preço</span>
+                            <input id="productPrice" name="productPrice" type="number" min="0" step="0.01" placeholder="Ex: 39.90" required>
+                        </label>
+                        <label class="full-width">
+                            <span>Descrição</span>
+                            <textarea id="productDescription" name="productDescription" rows="4" maxlength="180" required></textarea>
+                        </label>
+                        <label class="full-width">
+                            <span>URL da imagem</span>
+                            <input id="productImage" name="productImage" type="url" placeholder="https://..." required>
+                        </label>
+                    </div>
+
+                    <div class="admin-form-actions">
+                        <button class="primary-button admin-submit-button" id="productSubmitButton" type="submit">Cadastrar produto</button>
+                        <button class="secondary-button admin-cancel-button hidden" id="cancelEditButton" type="button">Cancelar edição</button>
+                    </div>
+                </form>
+
+                <aside class="admin-products">
+                    <div class="form-heading">
+                        <h3>Produtos cadastrados</h3>
+                        <p>Quando a API Node.js estiver rodando com PostgreSQL, os itens ficam salvos online e disponíveis em qualquer dispositivo.</p>
+                    </div>
+                    <div class="admin-product-list" id="adminProductList"></div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <div class="login-modal hidden" id="loginModal" aria-hidden="true">
+        <div class="login-backdrop" id="closeLoginModal"></div>
+        <div class="login-card" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+            <button class="login-close" id="loginCloseButton" type="button" aria-label="Fechar login">×</button>
+            <span class="section-tag">Acesso administrativo</span>
+            <h2 id="loginTitle">Entrar para gerenciar a loja</h2>
+            <p>Faça login para liberar o cadastro de novos produtos no catálogo.</p>
+
+            <form class="login-form" id="loginForm">
+                <label>
+                    <span>E-mail da administradora</span>
+                    <input id="adminUser" name="adminUser" type="email" placeholder="admin@sualoja.com" autocomplete="username" required>
+                </label>
+                <label>
+                    <span>Senha</span>
+                    <input id="adminPassword" name="adminPassword" type="password" autocomplete="current-password" required>
+                </label>
+                <button class="primary-button login-submit" type="submit">Entrar no painel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botao flutuante para contato rapido -->
+    <a
+        class="floating-whatsapp"
+        href="https://wa.me/5527997934983?text=Olá!%20Quero%20mais%20informações%20sobre%20os%20acessórios%20da%20Essence%20Sam"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Falar no WhatsApp"
+    >
+        <span>WhatsApp</span>
+    </a>
+
+    <!-- Notificacao visual ao iniciar o redirecionamento -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="image-viewer hidden" id="imageViewer" aria-hidden="true">
+        <div class="image-viewer-backdrop" id="closeImageViewer"></div>
+        <div class="image-viewer-card" role="dialog" aria-modal="true" aria-labelledby="imageViewerTitle">
+            <button class="image-viewer-close" id="closeImageViewerButton" type="button" aria-label="Fechar imagem">×</button>
+            <div class="image-viewer-topbar">
+                <div>
+                    <p class="image-viewer-label">Visualização do produto</p>
+                    <h2 id="imageViewerTitle"></h2>
+                </div>
+                <div class="image-viewer-controls">
+                    <button class="secondary-button image-viewer-control" id="zoomOutButton" type="button">-</button>
+                    <span class="image-viewer-zoom" id="zoomValue">100%</span>
+                    <button class="secondary-button image-viewer-control" id="zoomInButton" type="button">+</button>
+                </div>
+            </div>
+            <div class="image-viewer-frame">
+                <img id="imageViewerImage" src="" alt="">
+            </div>
+        </div>
+    </div>
+
+    <button class="cart-fab" id="openCartButton" type="button" aria-label="Abrir carrinho">
+        <span>Meu carrinho</span>
+        <strong id="cartFabCount">0</strong>
+    </button>
+
+    <div class="cart-drawer hidden" id="cartDrawer" aria-hidden="true">
+        <div class="cart-drawer-backdrop" id="closeCartDrawer"></div>
+        <aside class="cart-panel" aria-label="Carrinho de compras">
+            <div class="cart-panel-header">
+                <div>
+                    <span class="section-tag">Carrinho Essence Sam</span>
+                    <h2>Produtos que chamaram sua atenção</h2>
+                </div>
+                <button class="cart-close" id="closeCartButton" type="button" aria-label="Fechar carrinho">×</button>
+            </div>
+            <div class="cart-summary">
+                <p id="cartSummaryText">0 itens selecionados</p>
+                <strong id="cartSummaryTotal">R$ 0,00</strong>
+            </div>
+            <div class="cart-customer-form">
+                <label>
+                    <span>Seu nome</span>
+                    <input id="cartCustomerName" type="text" maxlength="80" placeholder="Como você gostaria de ser atendida?">
+                </label>
+                <label>
+                    <span>WhatsApp</span>
+                    <input id="cartCustomerPhone" type="tel" maxlength="25" placeholder="(27) 99999-9999">
+                </label>
+                <label>
+                    <span>Observações</span>
+                    <textarea id="cartCustomerNotes" rows="3" maxlength="200" placeholder="Ex: quero ver mais fotos, prazo, embalagem para presente..."></textarea>
+                </label>
+            </div>
+            <div class="cart-items" id="cartItems"></div>
+            <div class="cart-actions">
+                <button class="secondary-button cart-clear-button" id="clearCartButton" type="button">Limpar carrinho</button>
+                <a class="primary-button cart-whatsapp-button" id="cartWhatsappButton" href="#" target="_blank" rel="noopener noreferrer">Enviar carrinho no WhatsApp</a>
+            </div>
+        </aside>
+    </div>
+
+    <section class="admin-orders reveal hidden" id="adminOrdersSection" aria-label="Pedidos da loja">
+        <div class="admin-orders-header">
+            <div>
+                <span class="section-tag">Pedidos</span>
+                <h2>Pedidos recebidos pela loja</h2>
+            </div>
+            <p>Acompanhe os pedidos enviados pelo carrinho e atualize o andamento de cada atendimento.</p>
+        </div>
+        <div class="admin-orders-list" id="adminOrdersList"></div>
+    </section>
+
+    <footer class="footer">
+        <p>Acessórios Femininos Essence Sam</p>
+    </footer>
+
+    <script src="api-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
