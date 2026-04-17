@@ -1,4 +1,4 @@
-window.ESSENCE_SAM_API_URL = "postgresql://postgres:cOhFfSCszhOhnFXyncAaLpdUdIsamhgN@mainline.proxy.rlwy.net:44770/railway";
+window.ESSENCE_SAM_API_URL = "loja-samara-production.up.railway.app/api";
 
 const explicitApiUrl = window.ESSENCE_SAM_API_URL || "";
 const normalizedExplicitApiUrl = explicitApiUrl.trim().replace(/\/$/, "");
